@@ -104,12 +104,13 @@ class TestDocumentationFetcherServer:
             "library_name": "fastapi"
         })
 
-        assert isinstance(result, CallToolResult)
-        assert len(result.content) == 1
-        assert isinstance(result.content[0], TextContent)
+        # Result is now a list of TextContent (MCP SDK wraps it in CallToolResult)
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert isinstance(result[0], TextContent)
 
         # Parse response
-        response_data = json.loads(result.content[0].text)
+        response_data = json.loads(result[0].text)
         assert response_data["success"] is True
         assert "cached" in response_data["message"].lower()
         assert response_data["data"]["source"] == "cache"
@@ -153,8 +154,8 @@ class TestDocumentationFetcherServer:
             "max_pages": 10
         })
 
-        assert isinstance(result, CallToolResult)
-        response_data = json.loads(result.content[0].text)
+        assert isinstance(result, list)
+        response_data = json.loads(result[0].text)
         assert response_data["success"] is True
         assert response_data["data"]["source"] == "fresh"
 
@@ -176,8 +177,8 @@ class TestDocumentationFetcherServer:
             "max_results": 5
         })
 
-        assert isinstance(result, CallToolResult)
-        response_data = json.loads(result.content[0].text)
+        assert isinstance(result, list)
+        response_data = json.loads(result[0].text)
         assert response_data["success"] is True
         assert len(response_data["data"]["results"]) == 2
 
@@ -196,8 +197,8 @@ class TestDocumentationFetcherServer:
             "library_name": "fastapi"
         })
 
-        assert isinstance(result, CallToolResult)
-        response_data = json.loads(result.content[0].text)
+        assert isinstance(result, list)
+        response_data = json.loads(result[0].text)
         assert response_data["success"] is True
         assert response_data["data"]["cleared_libraries"] == 3
         assert response_data["data"]["library_name"] == "fastapi"
@@ -209,8 +210,8 @@ class TestDocumentationFetcherServer:
 
         result = await server._handle_clear_cache({})
 
-        assert isinstance(result, CallToolResult)
-        response_data = json.loads(result.content[0].text)
+        assert isinstance(result, list)
+        response_data = json.loads(result[0].text)
         assert response_data["success"] is True
         assert response_data["data"]["cleared_libraries"] == 5
 
@@ -229,7 +230,7 @@ class TestDocumentationFetcherServer:
         })
 
         # Should behave like fetch_documentation with force_refresh=True
-        assert isinstance(result, CallToolResult)
+        assert isinstance(result, list)
 
     @pytest.mark.asyncio
     async def test_tool_validation_error(self, server):
@@ -238,8 +239,8 @@ class TestDocumentationFetcherServer:
             "library_name": "",  # Invalid empty name
         })
 
-        assert isinstance(result, CallToolResult)
-        response_data = json.loads(result.content[0].text)
+        assert isinstance(result, list)
+        response_data = json.loads(result[0].text)
         assert response_data["success"] is False
         assert "Invalid request" in response_data["message"]
 
@@ -252,8 +253,8 @@ class TestDocumentationFetcherServer:
             "library_name": "fastapi"
         })
 
-        assert isinstance(result, CallToolResult)
-        response_data = json.loads(result.content[0].text)
+        assert isinstance(result, list)
+        response_data = json.loads(result[0].text)
         assert response_data["success"] is False
         assert "failed" in response_data["message"].lower()
 
@@ -264,8 +265,8 @@ class TestDocumentationFetcherServer:
             {"key": "value"}
         )
 
-        assert isinstance(result, CallToolResult)
-        response_data = json.loads(result.content[0].text)
+        assert isinstance(result, list)
+        response_data = json.loads(result[0].text)
         assert response_data["success"] is True
         assert response_data["message"] == "Operation completed"
         assert response_data["data"]["key"] == "value"
@@ -277,8 +278,8 @@ class TestDocumentationFetcherServer:
             "ERROR_CODE"
         )
 
-        assert isinstance(result, CallToolResult)
-        response_data = json.loads(result.content[0].text)
+        assert isinstance(result, list)
+        response_data = json.loads(result[0].text)
         assert response_data["success"] is False
         assert response_data["message"] == "Operation failed"
         assert response_data["error_code"] == "ERROR_CODE"

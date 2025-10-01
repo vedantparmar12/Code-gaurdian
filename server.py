@@ -11,8 +11,6 @@ from typing import Any, Dict, List, Optional
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import (
-    CallToolRequest,
-    CallToolResult,
     ListResourcesRequest,
     ListResourcesResult,
     ListToolsRequest,
@@ -226,8 +224,8 @@ class DocumentationFetcherServer:
             )
 
         @self.server.call_tool()
-        async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
-            """Handle tool calls."""
+        async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
+            """Handle tool calls - returns list of content for MCP SDK to wrap in CallToolResult."""
             try:
                 logger.info(f"Tool called: {name} with arguments: {arguments}")
 
@@ -318,7 +316,7 @@ class DocumentationFetcherServer:
                     ]
                 )
 
-    async def _handle_fetch_documentation(self, arguments: Dict[str, Any]) -> CallToolResult:
+    async def _handle_fetch_documentation(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Handle fetch_documentation tool call."""
         try:
             return await self._handle_single_library_documentation(arguments)
@@ -326,7 +324,7 @@ class DocumentationFetcherServer:
             logger.error(f"Error in fetch_documentation: {e}")
             return self._create_error_result(f"Failed to fetch documentation: {str(e)}")
 
-    async def _handle_single_library_documentation(self, arguments: Dict[str, Any]) -> CallToolResult:
+    async def _handle_single_library_documentation(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Handle single library documentation fetch (original behavior)."""
         try:
             # Validate arguments
@@ -425,7 +423,7 @@ class DocumentationFetcherServer:
             logger.error(f"Error in single library documentation: {e}", exc_info=True)
             return self._create_error_result(f"Failed to fetch documentation: {str(e)}")
 
-    async def _handle_search_documentation(self, arguments: Dict[str, Any]) -> CallToolResult:
+    async def _handle_search_documentation(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Handle search_documentation tool call."""
         try:
             # Validate arguments
@@ -480,7 +478,7 @@ class DocumentationFetcherServer:
             logger.error(f"Error in search_documentation: {e}", exc_info=True)
             return self._create_error_result(f"Failed to search documentation: {str(e)}")
 
-    async def _handle_clear_cache(self, arguments: Dict[str, Any]) -> CallToolResult:
+    async def _handle_clear_cache(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Handle clear_cache tool call."""
         try:
             library_name = arguments.get("library_name")
@@ -504,7 +502,7 @@ class DocumentationFetcherServer:
             logger.error(f"Error in clear_cache: {e}", exc_info=True)
             return self._create_error_result(f"Failed to clear cache: {str(e)}")
 
-    async def _handle_refresh_documentation(self, arguments: Dict[str, Any]) -> CallToolResult:
+    async def _handle_refresh_documentation(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Handle refresh_documentation tool call."""
         try:
             # This is essentially fetch_documentation with force_refresh=True
@@ -517,7 +515,7 @@ class DocumentationFetcherServer:
             logger.error(f"Error in refresh_documentation: {e}", exc_info=True)
             return self._create_error_result(f"Failed to refresh documentation: {str(e)}")
 
-    async def _handle_validate_and_fix_code(self, arguments: Dict[str, Any]) -> CallToolResult:
+    async def _handle_validate_and_fix_code(self, arguments: Dict[str, Any]) -> List[TextContent]:
         """Handle code validation and fixing."""
         try:
             code = arguments.get("code")
@@ -658,41 +656,37 @@ class DocumentationFetcherServer:
             ]
         )
 
-    def _create_success_result(self, message: str, data: Optional[Dict[str, Any]] = None) -> CallToolResult:
-        """Create a successful tool result."""
+    def _create_success_result(self, message: str, data: Optional[Dict[str, Any]] = None) -> List[TextContent]:
+        """Create a successful tool result (returns content list for MCP SDK)."""
         response = {
             "success": True,
             "message": message,
             "data": data
         }
 
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text",
-                    text=json.dumps(response, indent=2, default=str)
-                )
-            ],
-            isError=False
-        )
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(response, indent=2, default=str)
+            )
+        ]
 
-    def _create_error_result(self, message: str, error_code: Optional[str] = None) -> CallToolResult:
-        """Create an error tool result."""
+    def _create_error_result(self, message: str, error_code: Optional[str] = None) -> List[TextContent]:
+        """Create an error tool result (returns content list for MCP SDK)."""
         response = {
             "success": False,
             "message": message,
             "error_code": error_code
         }
 
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text",
-                    text=json.dumps(response, indent=2, default=str)
-                )
-            ],
-            isError=True
-        )
+        # Note: MCP SDK will wrap this in CallToolResult with isError based on exception handling
+        # For explicit errors, we include error info in the response text
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(response, indent=2, default=str)
+            )
+        ]
 
     async def shutdown(self):
         """Graceful shutdown."""
@@ -707,6 +701,13 @@ class DocumentationFetcherServer:
 
 async def main():
     """Main server entry point."""
+    import os
+
+    # CRITICAL: Set environment variables to suppress all Crawl4AI output
+    # MCP uses JSON-RPC over stdio - any non-JSON output breaks the protocol
+    os.environ['CRAWL4AI_VERBOSE'] = 'false'
+    os.environ['CRAWL4AI_LOG_LEVEL'] = 'ERROR'
+
     # Create and initialize server
     doc_server = DocumentationFetcherServer()
 
