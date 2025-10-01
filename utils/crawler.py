@@ -70,15 +70,21 @@ class DocumentCrawler:
         """Create optimized browser configuration for documentation crawling."""
         import sys
         import io
+        import os
 
         # Set stdout/stderr to UTF-8 to handle Unicode characters
         if sys.platform == 'win32':
             sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
             sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
+        # CRITICAL: Disable all console output from Crawl4AI to prevent JSON-RPC corruption
+        # MCP servers communicate via JSON-RPC over stdio - any non-JSON output breaks the protocol
+        os.environ['CRAWL4AI_VERBOSE'] = 'false'
+        os.environ['CRAWL4AI_LOG_LEVEL'] = 'ERROR'
+
         return BrowserConfig(
             headless=True,
-            verbose=False,
+            verbose=False,  # Disable verbose output - critical for MCP
             extra_args=[
                 "--disable-gpu",
                 "--disable-dev-shm-usage",
@@ -97,6 +103,7 @@ class DocumentCrawler:
                 "--max_old_space_size=4096",
                 "--no-first-run",
                 "--disable-default-apps",
+                "--log-level=3",  # Suppress Chromium console output
             ]
         )
 
@@ -248,13 +255,30 @@ class DocumentCrawler:
         if HAS_ADVANCED_DISPATCHER and len(urls) > 10:
             return await self._crawl_with_advanced_dispatcher(urls, library_name, max_concurrent)
 
+        # Suppress stdout from Crawl4AI to prevent JSON-RPC corruption
+        import sys
+        import io
+        import contextlib
+
+        @contextlib.contextmanager
+        def suppress_stdout():
+            """Suppress stdout while preserving stderr for logging."""
+            old_stdout = sys.stdout
+            try:
+                sys.stdout = io.StringIO()
+                yield
+            finally:
+                sys.stdout = old_stdout
+
         async with AsyncWebCrawler(config=self.browser_config) as crawler:
             # Use arun_many for intelligent URL-specific configuration matching
             try:
-                results = await crawler.arun_many(
-                    urls=urls,
-                    config=crawler_configs
-                )
+                # Suppress stdout during crawling to prevent progress output
+                with suppress_stdout():
+                    results = await crawler.arun_many(
+                        urls=urls,
+                        config=crawler_configs
+                    )
 
                 successful_pages = []
                 failed_count = 0
@@ -283,7 +307,8 @@ class DocumentCrawler:
             except Exception as e:
                 logger.error(f"Error in arun_many: {e}")
                 # Fallback to individual crawling with semaphore
-                return await self._crawl_pages_fallback(crawler, urls, max_concurrent)
+                with suppress_stdout():
+                    return await self._crawl_pages_fallback(crawler, urls, max_concurrent)
 
     async def _crawl_pages_fallback(
         self,
