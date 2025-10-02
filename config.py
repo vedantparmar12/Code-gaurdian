@@ -109,6 +109,26 @@ class Settings(BaseSettings):
         description="Overlap between text chunks"
     )
 
+    # Chunking Configuration (Docling)
+    use_docling_chunking: bool = Field(
+        default=True,
+        description="Use Docling HybridChunker for token-precise chunking"
+    )
+    max_tokens_per_chunk: int = Field(
+        default=512,
+        ge=128,
+        le=2048,
+        description="Maximum tokens per chunk (for embedding models)"
+    )
+    chunking_embedding_model: str = Field(
+        default="nomic-ai/nomic-embed-text-v1.5",
+        description="HuggingFace model for tokenizer (must match embedding model)"
+    )
+    merge_peer_chunks: bool = Field(
+        default=True,
+        description="Merge small adjacent chunks in Docling chunker"
+    )
+
     # Neo4j Configuration for Graph RAG
     neo4j_uri: str = Field(
         default="neo4j://127.0.0.1:7687",

@@ -19,6 +19,7 @@ except ImportError:
 
 from ..config import Settings
 from ..models import DocumentPage, EmbeddingChunk
+from .docling_chunker import create_chunker, ChunkResult
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,22 @@ class DocumentEmbedder:
         except Exception as e:
             logger.warning(f"Failed to load tiktoken encoder: {e}")
             self.tokenizer = None
+
+        # Initialize Docling chunker if enabled
+        self.chunker = None
+        if settings.use_docling_chunking:
+            try:
+                self.chunker = create_chunker(
+                    use_docling=True,
+                    max_tokens=settings.max_tokens_per_chunk,
+                    embedding_model=settings.chunking_embedding_model
+                )
+                logger.info(
+                    f"Initialized Docling chunker (max_tokens={settings.max_tokens_per_chunk})"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to initialize Docling chunker: {e}, using fallback")
+                self.chunker = create_chunker(use_docling=False, max_tokens=settings.max_tokens_per_chunk)
 
     async def generate_embeddings_for_pages(
         self,
@@ -102,7 +119,39 @@ class DocumentEmbedder:
             logger.warning(f"Empty content for page: {page.title}")
             return []
 
-        # Split content using multiple strategies
+        # Use Docling chunker if available
+        if self.chunker:
+            try:
+                # Use asyncio to run async chunker
+                loop = asyncio.get_event_loop()
+                chunk_results = loop.run_until_complete(
+                    self.chunker.chunk_markdown(
+                        markdown=content,
+                        title=page.title,
+                        url=str(page.url),
+                        metadata={"source": "documentation"}
+                    )
+                )
+
+                # Extract text content from ChunkResult objects
+                chunks = [chunk.content for chunk in chunk_results if len(chunk.content.strip()) >= 100]
+
+                # Store token counts for later use
+                for i, chunk_result in enumerate(chunk_results):
+                    if hasattr(page, 'chunk_token_counts'):
+                        page.chunk_token_counts = getattr(page, 'chunk_token_counts', [])
+                        page.chunk_token_counts.append(chunk_result.token_count)
+
+                logger.debug(
+                    f"Split '{page.title}' into {len(chunks)} chunks using Docling "
+                    f"(avg tokens: {sum(c.token_count for c in chunk_results) // len(chunk_results) if chunk_results else 0})"
+                )
+                return chunks
+
+            except Exception as e:
+                logger.warning(f"Docling chunking failed for '{page.title}': {e}, using fallback")
+
+        # Fallback to original chunking
         chunks = self._split_content_intelligently(
             content,
             max_chunk_size=self.settings.embedding_chunk_size,
@@ -115,7 +164,7 @@ class DocumentEmbedder:
             if len(chunk.strip()) >= 100:  # Minimum 100 characters
                 filtered_chunks.append(chunk.strip())
 
-        logger.debug(f"Split '{page.title}' into {len(filtered_chunks)} chunks")
+        logger.debug(f"Split '{page.title}' into {len(filtered_chunks)} chunks (fallback method)")
         return filtered_chunks
 
     def _preprocess_content(self, content: str) -> str:
