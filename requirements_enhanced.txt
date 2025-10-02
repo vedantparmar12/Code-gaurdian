@@ -1,0 +1,58 @@
+# ============================================================
+# MCP Doc Fetcher - Enhanced Requirements
+# ============================================================
+
+# ============ Core MCP ============
+mcp>=0.9.0
+
+# ============ Existing Dependencies (Keep) ============
+# Ollama & Embeddings
+ollama>=0.1.0
+python-dotenv>=1.0.0
+
+# HTTP & Async
+aiohttp>=3.9.0
+asyncio-throttle>=1.0.0
+
+# Database (SQLite - Keep for cache)
+aiosqlite>=0.19.0
+
+# ============ NEW: Production Features ============
+
+# Supabase (Vector Storage)
+supabase>=2.0.0
+postgrest-py>=0.13.0
+
+# Sentence Transformers (Reranking)
+sentence-transformers>=2.2.0
+torch>=2.0.0  # Required by sentence-transformers
+
+# Neo4j (Knowledge Graph)
+neo4j>=5.14.0
+
+# Parallel Processing
+aioh
+
+ttp>=0.9.0  # Better async HTTP
+
+# ============ Web Crawling (Optional) ============
+# If you want advanced crawling like mcp-crawl4ai-rag
+# crawl4ai>=0.1.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# ============ Utilities ============
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Progress bars (optional)
+tqdm>=4.66.0
+
+# ============ Development ============
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
+
+# ============ Version Compatibility ============
+# Python 3.10+ required

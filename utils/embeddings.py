@@ -342,12 +342,27 @@ class DocumentEmbedder:
                 # Generate embeddings for the batch
                 logger.debug(f"Generating embeddings for batch {i//batch_size + 1} ({len(batch)} chunks)")
 
-                # Use asyncio to run the synchronous embedding generation
-                embeddings = await asyncio.get_event_loop().run_in_executor(
-                    None,
-                    self.embeddings.embed_documents,
-                    batch
-                )
+                # Use langchain or direct ollama client
+                if self.use_langchain and self.embeddings:
+                    # Use asyncio to run the synchronous embedding generation
+                    embeddings = await asyncio.get_event_loop().run_in_executor(
+                        None,
+                        self.embeddings.embed_documents,
+                        batch
+                    )
+                else:
+                    # Use direct Ollama client
+                    embeddings = []
+                    for text in batch:
+                        response = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda t: ollama.embeddings(
+                                model=self.settings.ollama_embedding_model,
+                                prompt=t
+                            ),
+                            text
+                        )
+                        embeddings.append(response['embedding'])
 
                 # Create EmbeddingChunk objects
                 for j, (text, embedding) in enumerate(zip(batch, embeddings)):
@@ -413,12 +428,23 @@ class DocumentEmbedder:
         try:
             logger.debug(f"Generating query embedding for: {query[:50]}...")
 
-            # Generate embedding
-            embedding = await asyncio.get_event_loop().run_in_executor(
-                None,
-                self.embeddings.embed_query,
-                query
-            )
+            # Generate embedding using langchain or direct ollama
+            if self.use_langchain and self.embeddings:
+                embedding = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    self.embeddings.embed_query,
+                    query
+                )
+            else:
+                # Use direct Ollama client
+                response = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: ollama.embeddings(
+                        model=self.settings.ollama_embedding_model,
+                        prompt=query
+                    )
+                )
+                embedding = response['embedding']
 
             # Normalize for cosine similarity
             normalized_embedding = self._normalize_vector(embedding)
