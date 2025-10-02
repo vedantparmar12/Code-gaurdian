@@ -82,8 +82,26 @@ class OllamaClient:
                     logger.error(f"Ollama API error: {response.status} - {error_text}")
                     return None
 
-                result = await response.json()
-                generated_text = result.get("response", "").strip()
+                # Check content type
+                content_type = response.headers.get('content-type', '')
+
+                if 'application/json' in content_type:
+                    # Standard JSON response
+                    result = await response.json()
+                    generated_text = result.get("response", "").strip()
+                else:
+                    # Text response - some models return JSON as text/plain
+                    logger.warning(f"Model {self.model} returned text/plain, attempting to parse as JSON")
+                    text = await response.text()
+
+                    try:
+                        # Try to parse as JSON
+                        result = json.loads(text)
+                        generated_text = result.get("response", "").strip()
+                    except json.JSONDecodeError:
+                        # If not JSON, use the raw text
+                        logger.warning("Response is not JSON, using raw text")
+                        generated_text = text.strip()
 
                 logger.info(f"Generated {len(generated_text)} characters of code")
                 return generated_text
@@ -135,6 +153,14 @@ class OllamaClient:
                     error_text = await response.text()
                     logger.error(f"Ollama chat error: {response.status} - {error_text}")
                     return None
+
+                # Check content type - some models don't support /api/chat
+                content_type = response.headers.get('content-type', '')
+                if 'application/json' not in content_type:
+                    logger.warning(f"Model {self.model} doesn't support /api/chat, falling back to /api/generate")
+                    # Fallback: use generate API with combined prompt
+                    combined_prompt = "\n\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+                    return await self.generate_code(combined_prompt, temperature=temperature, max_tokens=max_tokens)
 
                 result = await response.json()
                 message = result.get("message", {})
