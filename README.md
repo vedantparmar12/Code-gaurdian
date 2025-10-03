@@ -1,49 +1,72 @@
-# MCP Documentation Fetcher & Universal Code Validator
+# MCP Documentation Fetcher & Universal Multi-Language Code Validator
 
-**🚀 Automatic code validation and fixing using loop-based regeneration with Qwen3-Coder (480B) - Zero Claude tokens used!**
+**🚀 Automatic code validation and fixing for 5+ languages using loop-based regeneration with Qwen3-Coder (480B) - Zero Claude tokens used!**
 
-AI-powered MCP server that automatically validates and fixes Python code by fetching official documentation for any library. Works seamlessly with Claude Desktop, VS Code, and any MCP-compatible IDE.
+AI-powered MCP server that automatically validates and fixes code in **Python, JavaScript, TypeScript, Java, Go, and React** by fetching official documentation for any library. Works seamlessly with Claude Desktop, VS Code, Cursor, Windsurf, and any MCP-compatible IDE.
 
 ## 🎯 What It Does
 
 **Problem:** Claude/AI writes code that has errors, uses wrong APIs, or incompatible versions. Fixing it costs Claude tokens and time.
 
 **Solution:** This MCP server automatically (using **local Ollama**):
-1. ✅ **Detects all errors** (syntax, imports, undefined names, type errors)
-2. ✅ **Fetches official documentation** (works for ANY Python library!)
+1. ✅ **Detects all errors** (syntax, imports, undefined names, type errors) in **5+ languages**
+2. ✅ **Fetches official documentation** (PyPI for Python, npm for JS/TS, Maven for Java, pkg.go.dev for Go)
 3. ✅ **Uses Qwen3-Coder 480B** in a loop to fix errors automatically
 4. ✅ **Checks version compatibility** across all dependencies
 5. ✅ **Validates library usage** against documentation
 6. ✅ **Returns error-free code** - **NO CLAUDE TOKENS USED!** 🎉
 
-## ✨ New Features (Loop-Based Auto-Fixing)
+## 🌐 Supported Languages
 
-- 🔁 **Loop-Based Regeneration**: Automatically fixes code in iterations until error-free (up to 5 attempts)
+| Language | Import Detection | Doc Source | Error Detection | Status |
+|----------|------------------|------------|-----------------|--------|
+| **Python** | ✅ AST + Regex | PyPI API | ✅ AST + pylint | ✅ Production |
+| **JavaScript** | ✅ Regex | npm Registry | ✅ Node.js --check | ✅ Production |
+| **TypeScript** | ✅ Regex | npm Registry | ✅ tsc compiler | ✅ Production |
+| **React/JSX** | ✅ Regex | React Docs + npm | ✅ tsc compiler | ✅ Production |
+| **Java** | ✅ Regex | Maven Central | ✅ javac compiler | ✅ Production |
+| **Go** | ✅ Regex | pkg.go.dev | ✅ go build | ✅ Production |
+
+## ✨ Key Features
+
+### Multi-Language Support
+- 🌍 **6 Languages**: Python, JavaScript, TypeScript, React, Java, Go
+- 🔌 **Pluggable Architecture**: Easy to add new languages
+- 📦 **Universal Doc Fetcher**: Automatically finds docs from language-specific registries
+- 🔍 **Language-Specific Error Detection**: Uses native compilers/linters
+
+### Loop-Based Auto-Fixing
+- 🔁 **Iterative Regeneration**: Automatically fixes code in iterations (up to 5 attempts)
 - 🧠 **Qwen3-Coder 480B**: Uses powerful local LLM for intelligent code fixing
 - 🚫 **Zero Claude Tokens**: All fixing happens locally via Ollama - saves money!
-- 🔍 **Error Detection**: AST parsing, syntax checking, import validation, undefined name detection
-- 📊 **Version Compatibility**: Checks PyPI for version conflicts and compatibility
 - 📚 **Documentation Context**: Fetches relevant docs to guide code fixing
-- 🔁 **Iterative Improvement**: Keeps fixing until code is error-free or max iterations reached
+- ⚡ **Fast Convergence**: Most errors fixed in 1-2 iterations
 
-## ✨ Existing Features
-
-- 🔍 **Universal Documentation Finder**: Uses PyPI API - works for ANY Python library (no hardcoding!)
-- 🤖 **Smart Code Validation**: AST-based import extraction and pattern matching
-- 🌐 **Multiple Search Strategies**: PyPI API → URL probing → GitHub → DuckDuckGo
+### Smart Features
+- 🔍 **AST/Regex Parsing**: Extracts imports and dependencies accurately
+- 🌐 **Multiple Search Strategies**: Primary registry → GitHub → Fallback search
 - 🧠 **Semantic Search**: Ollama embeddings for intelligent documentation search
 - 💾 **Persistent Caching**: SQLite-based cache with vector search
-- 🔗 **MCP Compatible**: Works with Claude Desktop, VS Code, and other MCP clients
-- ⚡ **No Rate Limits**: Uses free APIs (PyPI, DuckDuckGo, Ollama)
+- 🔗 **MCP Compatible**: Works with Claude Desktop, VS Code, Cursor, Windsurf
+- ⚡ **No Rate Limits**: Uses free APIs (PyPI, npm, Maven, pkg.go.dev, Ollama)
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
+**Core Requirements:**
 - Python 3.11+
 - [Ollama](https://ollama.ai) installed and running
 - Qwen3-Coder model: `ollama pull qwen3-coder:480b-cloud`
 - Embedding model: `ollama pull nomic-embed-text`
+
+**Language-Specific (Optional - for error detection):**
+- **JavaScript/TypeScript**: Node.js 18+ (`node --version`)
+- **TypeScript/React**: TypeScript compiler (`npm install -g typescript`)
+- **Java**: JDK 11+ with javac (`javac -version`)
+- **Go**: Go 1.19+ (`go version`)
+
+*Note: Without these, the system falls back to regex-based error detection.*
 
 ### Installation
 
@@ -90,54 +113,72 @@ Add to your Claude Desktop or MCP client configuration:
 
 ## 💡 Usage
 
-### With Claude Desktop
+### With Claude Desktop, VS Code, Cursor, or Windsurf
 
-Simply write code and Claude will automatically validate and fix it:
+Simply write code in **any supported language** and the MCP server will automatically validate and fix it:
 
+#### Example 1: Python with FastAPI
 ```
 You: Create a chatbot API with FastAPI and OpenAI
 
 Claude: [writes code]
 
 MCP: [automatically validates and fixes]
+- Language: Python
 - Extracts libraries: fastapi, openai, pydantic
-- Fetches official documentation
+- Fetches official documentation from PyPI
 - Validates API usage
 - Fixes deprecated methods
 - Returns error-free code
 ```
 
-### Available MCP Tools
+#### Example 2: TypeScript/React
+```
+You: Create a Next.js API route with Prisma
 
-1. **`fetch_documentation`**
-   - Fetches and caches library documentation
-   - Works for ANY Python library via PyPI API
+Claude: [writes TypeScript code]
+
+MCP: [automatically validates and fixes]
+- Language: TypeScript
+- Extracts libraries: next, prisma, react
+- Fetches documentation from npm + Next.js docs
+- Validates type errors with tsc
+- Fixes import issues
+- Returns error-free code
+```
+
+#### Example 3: Go with Gin
+```
+You: Create a REST API with Gin and GORM
+
+Claude: [writes Go code]
+
+MCP: [automatically validates and fixes]
+- Language: Go
+- Extracts libraries: github.com/gin-gonic/gin, gorm.io/gorm
+- Fetches documentation from pkg.go.dev
+- Validates with go build
+- Fixes compilation errors
+- Returns error-free code
+```
+
+### Available MCP Tool
+
+**`validate_and_fix_code`** - Main tool that works for all languages
    ```json
    {
-     "library_name": "fastapi",
-     "version": "latest",
-     "max_pages": 10
+     "code": "your code here",
+     "language": "python|javascript|typescript|java|go",
+     "project_description": "optional context"
    }
    ```
 
-2. **`search_documentation`**
-   - Semantic search within cached documentation
-   ```json
-   {
-     "library_name": "fastapi",
-     "query": "authentication examples",
-     "max_results": 5
-   }
-   ```
-
-3. **`validate_and_fix_code`** ⭐ Main tool
-   - Validates and fixes code automatically
-   ```json
-   {
-     "code": "your Python code here",
-     "project_description": "chatbot API"
-   }
-   ```
+**Supported language values:**
+- `python` - Python code
+- `javascript` - JavaScript/Node.js code
+- `typescript` - TypeScript, TSX, React, Next.js code
+- `java` - Java code
+- `go` - Go/Golang code
 
 ## 🏗️ Architecture
 
@@ -165,18 +206,20 @@ MCP: [automatically validates and fixes]
 
 ### Core Components
 
-1. **Universal Documentation Finder** (`utils/universal_doc_finder.py`)
-   - PyPI API for official URLs (works for ALL packages!)
-   - URL pattern probing for common doc locations
-   - GitHub repository search
-   - DuckDuckGo fallback search
+1. **Language Support Modules** (`language_support/`)
+   - **Base Classes**: Abstract interfaces for pluggable architecture
+   - **Python**: AST parsing, PyPI API, Python error detection
+   - **JavaScript**: Regex parsing, npm Registry, Node.js error detection
+   - **TypeScript**: Regex parsing, npm + React/Next.js docs, tsc compiler
+   - **Java**: Regex parsing, Maven Central, javac compiler
+   - **Go**: Regex parsing, pkg.go.dev, go build
 
 2. **Code Validator** (`utils/code_validator.py`)
-   - AST-based import extraction
-   - Automatic documentation fetching
-   - Pattern matching against official docs
-   - Version compatibility checking
-   - Automatic code fixing
+   - Multi-language support orchestrator
+   - Import extraction (language-specific)
+   - Documentation fetching (registry-specific)
+   - Error detection (compiler/linter-specific)
+   - Automatic code fixing with Ollama
 
 3. **Documentation Crawler** (`utils/crawler.py`)
    - Crawl4AI integration
@@ -197,16 +240,26 @@ mcp_doc_fetcher/
 ├── config.py                      # Configuration
 ├── models.py                      # Pydantic models
 ├── requirements.txt               # Dependencies
+├── language_support/              # 🆕 Multi-language support
+│   ├── __init__.py
+│   ├── base.py                    # Abstract base classes
+│   ├── python.py                  # Python language support
+│   ├── javascript.py              # JavaScript language support
+│   ├── typescript.py              # TypeScript/React support
+│   ├── java.py                    # Java language support
+│   └── golang.py                  # Go language support
 ├── utils/
-│   ├── universal_doc_finder.py    # Find docs for ANY library
-│   ├── code_validator.py          # Validate & fix code
+│   ├── code_validator.py          # Multi-language validator
+│   ├── universal_doc_finder.py    # Legacy doc finder (Python)
 │   ├── web_search.py              # Multi-strategy search
 │   ├── crawler.py                 # Documentation crawling
 │   ├── embeddings.py              # Semantic search
 │   ├── cache.py                   # SQLite cache
-│   └── doc_url_registry.py        # Fallback URL registry
+│   ├── ollama_client.py           # Ollama integration
+│   └── error_detector.py          # Python error detection
 └── tests/
-    └── test_cache.py              # Unit tests
+    ├── test_cache.py              # Cache tests
+    └── test_language_support.py   # 🆕 Language module tests
 ```
 
 ## 🧪 Testing
@@ -218,11 +271,16 @@ pip install pytest pytest-asyncio pytest-cov
 # Run all tests
 pytest tests/ -v
 
+# Run language support tests
+pytest tests/test_language_support.py -v
+
 # Run with coverage
 pytest tests/ -v --cov=mcp_doc_fetcher
 
-# Run specific test
-pytest tests/test_cache.py -v
+# Run specific language tests
+pytest tests/test_language_support.py::TestPythonImportExtractor -v
+pytest tests/test_language_support.py::TestJavaScriptImportExtractor -v
+pytest tests/test_language_support.py::TestTypeScriptImportExtractor -v
 ```
 
 ## 🔧 Configuration
