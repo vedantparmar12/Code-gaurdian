@@ -85,7 +85,7 @@ class DocumentEmbedder:
             logger.info(f"Generating embeddings for page {page_idx + 1}/{len(pages)}: {page.title}")
 
             # Chunk the page content
-            text_chunks = self._chunk_page_content(page)
+            text_chunks = await self._chunk_page_content(page)
 
             # Generate embeddings for chunks in batches
             chunk_embeddings = await self._generate_chunk_embeddings(
@@ -99,7 +99,7 @@ class DocumentEmbedder:
         logger.info(f"Generated {len(all_chunks)} embedding chunks from {len(pages)} pages")
         return all_chunks
 
-    def _chunk_page_content(self, page: DocumentPage) -> List[str]:
+    async def _chunk_page_content(self, page: DocumentPage) -> List[str]:
         """
         Split page content into optimally-sized chunks for embedding.
 
@@ -123,14 +123,11 @@ class DocumentEmbedder:
         if self.chunker:
             try:
                 # Use asyncio to run async chunker
-                loop = asyncio.get_event_loop()
-                chunk_results = loop.run_until_complete(
-                    self.chunker.chunk_markdown(
-                        markdown=content,
-                        title=page.title,
-                        url=str(page.url),
-                        metadata={"source": "documentation"}
-                    )
+                chunk_results = await self.chunker.chunk_markdown(
+                    markdown=content,
+                    title=page.title,
+                    url=str(page.url),
+                    metadata={"source": "documentation"}
                 )
 
                 # Extract text content from ChunkResult objects

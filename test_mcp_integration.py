@@ -24,6 +24,7 @@ from mcp_doc_fetcher.utils.cache import DocumentCache
 from mcp_doc_fetcher.utils.embeddings import DocumentEmbedder
 from mcp_doc_fetcher.utils.docling_chunker import create_chunker, DOCLING_AVAILABLE
 from mcp_doc_fetcher.models import DocumentPage
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
@@ -40,10 +41,10 @@ async def test_docling_availability():
     print("="*60)
 
     if DOCLING_AVAILABLE:
-        print("✅ Docling is installed and available")
+        print("[PASS] Docling is installed and available")
         return True
     else:
-        print("❌ Docling is NOT installed")
+        print("[FAIL] Docling is NOT installed")
         print("\nInstall with:")
         print("  pip install docling docling-core transformers torch")
         return False
@@ -68,11 +69,11 @@ async def test_chunker_initialization():
             embedding_model=settings.chunking_embedding_model
         )
 
-        print(f"\n✅ Chunker initialized: {type(chunker).__name__}")
+        print(f"\n[PASS] Chunker initialized: {type(chunker).__name__}")
         return chunker
 
     except Exception as e:
-        print(f"❌ Chunker initialization failed: {e}")
+        print(f"[FAIL] Chunker initialization failed: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -143,7 +144,7 @@ FastAPI automatically generates interactive API docs at:
             url="https://fastapi.tiangolo.com/tutorial/"
         )
 
-        print(f"\n✅ Chunking successful!")
+        print(f"\n[PASS] Chunking successful!")
         print(f"  - Total chunks: {len(chunks)}")
 
         for i, chunk in enumerate(chunks):
@@ -156,7 +157,7 @@ FastAPI automatically generates interactive API docs at:
         return chunks
 
     except Exception as e:
-        print(f"❌ Chunking failed: {e}")
+        print(f"[FAIL] Chunking failed: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -196,26 +197,26 @@ Content in section 1.
 Content in section 2.
 """,
             word_count=50,
-            fetched_at=None
+            fetched_at=datetime.now()
         )
 
         # Generate embeddings
         print("\nGenerating embeddings...")
         embedding_chunks = await embedder.generate_embeddings_for_pages([sample_page])
 
-        print(f"\n✅ Embedding generation successful!")
+        print(f"\n[PASS] Embedding generation successful!")
         print(f"  - Total embedding chunks: {len(embedding_chunks)}")
 
         for i, chunk in enumerate(embedding_chunks[:3]):  # Show first 3
             print(f"\n  Embedding Chunk {i}:")
-            print(f"    - Text length: {len(chunk.text)}")
-            print(f"    - Embedding dim: {len(chunk.embedding) if chunk.embedding else 'None'}")
-            print(f"    - Preview: {chunk.text[:80]}...")
+            print(f"    - Text length: {len(chunk.text_content)}")
+            print(f"    - Embedding dim: {len(chunk.embedding_vector) if chunk.embedding_vector else 'None'}")
+            print(f"    - Preview: {chunk.text_content[:80]}...")
 
         return embedding_chunks
 
     except Exception as e:
-        print(f"❌ Embedder integration failed: {e}")
+        print(f"[FAIL] Embedder integration failed: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -242,13 +243,13 @@ async def test_cache_storage():
         print(f"  - Total pages: {stats.total_pages}")
         print(f"  - Cache size: {stats.cache_size_mb:.2f} MB")
 
-        print("\n✅ Cache storage working!")
+        print("\n[PASS] Cache storage working!")
 
         await cache.close()
         return True
 
     except Exception as e:
-        print(f"❌ Cache storage failed: {e}")
+        print(f"[FAIL] Cache storage failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -266,20 +267,20 @@ async def test_mcp_server_startup():
         server = DocumentationFetcherServer()
         await server.initialize()
 
-        print("✅ MCP Server initialized successfully!")
+        print("[PASS] MCP Server initialized successfully!")
         print(f"  - Server name: {server.settings.server_name}")
         print(f"  - Server version: {server.settings.server_version}")
         print(f"  - Components:")
-        print(f"    - Cache: {'✓' if server.cache else '✗'}")
-        print(f"    - Searcher: {'✓' if server.searcher else '✗'}")
-        print(f"    - Crawler: {'✓' if server.crawler else '✗'}")
-        print(f"    - Embedder: {'✓' if server.embedder else '✗'}")
+        print(f"    - Cache: {'[PASS]' if server.cache else '[FAIL]'}")
+        print(f"    - Searcher: {'[PASS]' if server.searcher else '[FAIL]'}")
+        print(f"    - Crawler: {'[PASS]' if server.crawler else '[FAIL]'}")
+        print(f"    - Embedder: {'[PASS]' if server.embedder else '[FAIL]'}")
 
         await server.shutdown()
         return True
 
     except Exception as e:
-        print(f"❌ MCP Server startup failed: {e}")
+        print(f"[FAIL] MCP Server startup failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -307,21 +308,21 @@ async def test_claude_desktop_config():
     print(f"Looking for config at: {config_path}")
 
     if config_path.exists():
-        print("✅ Config file exists")
+        print("[PASS] Config file exists")
 
         try:
             with open(config_path, 'r') as f:
                 config = json.load(f)
 
             if "mcpServers" in config:
-                print(f"\n📋 MCP Servers configured:")
+                print(f"\n[CONFIG] MCP Servers configured:")
                 for name, server_config in config.get("mcpServers", {}).items():
                     print(f"\n  {name}:")
                     print(f"    - Command: {server_config.get('command')}")
                     print(f"    - Args: {server_config.get('args')}")
 
                     if "doc-fetcher" in name or "mcp_doc_fetcher" in str(server_config):
-                        print(f"\n✅ MCP Doc Fetcher is configured!")
+                        print(f"\n[PASS] MCP Doc Fetcher is configured!")
                         return True
 
                 print("\n⚠️  MCP Doc Fetcher not found in config")
@@ -339,12 +340,12 @@ async def test_claude_desktop_config():
                 }, indent=2))
 
             else:
-                print("❌ No mcpServers section found")
+                print("[FAIL] No mcpServers section found")
 
         except json.JSONDecodeError:
-            print("❌ Config file is not valid JSON")
+            print("[FAIL] Config file is not valid JSON")
     else:
-        print(f"❌ Config file not found at: {config_path}")
+        print(f"[FAIL] Config file not found at: {config_path}")
         print("\nCreate the file with:")
         print(json.dumps({
             "mcpServers": {
@@ -403,7 +404,7 @@ async def run_all_tests():
     print("="*60)
 
     for test_name, passed in results:
-        status = "✅ PASS" if passed else "❌ FAIL"
+        status = "[PASS]" if passed else "[FAIL]"
         print(f"{status} - {test_name}")
 
     total_passed = sum(1 for _, passed in results if passed)
@@ -412,7 +413,7 @@ async def run_all_tests():
     print(f"\nTotal: {total_passed}/{total_tests} tests passed")
 
     if total_passed == total_tests:
-        print("\n🎉 ALL TESTS PASSED! Ready for Claude Desktop!")
+        print("\n[SUCCESS] ALL TESTS PASSED! Ready for Claude Desktop!")
         print("\nNext steps:")
         print("1. Restart Claude Desktop")
         print("2. Check for 'doc-fetcher' in MCP tools")

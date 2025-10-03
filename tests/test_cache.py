@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import HttpUrl
 
-from mcp_doc_fetcher.config import Settings
+from config import Settings
 from mcp_doc_fetcher.models import LibraryDocumentation, DocumentPage, EmbeddingChunk
 from mcp_doc_fetcher.utils.cache import DocumentCache
 
