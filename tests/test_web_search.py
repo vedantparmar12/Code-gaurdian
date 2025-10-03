@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from pydantic import HttpUrl
 
-from mcp_doc_fetcher.config import Settings
+from config import Settings
 from mcp_doc_fetcher.utils.web_search import WebSearcher, SearchResult
 
 

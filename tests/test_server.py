@@ -13,7 +13,7 @@ from mcp_doc_fetcher.server import DocumentationFetcherServer
 @pytest.fixture
 def mock_settings():
     """Mock settings for testing."""
-    from mcp_doc_fetcher.config import Settings
+    from config import Settings
     return Settings(
         ollama_api_key="test_key",
         ollama_url="http://localhost:11434",
